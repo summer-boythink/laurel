@@ -1,0 +1,6 @@
+*.py
+.vscode
+*.db
+pages
+!cmd/pages/
+build/
