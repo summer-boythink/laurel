@@ -24,3 +24,9 @@ func CopyPage(dst *[PAGE_SIZE]byte, src []byte) {
 func PrintMsgf(msg string, args ...any) {
 	ResMsg <- fmt.Sprintf(msg, args...)
 }
+
+func indent(level uint32) {
+	for i := uint32(0); i < level; i++ {
+		PrintMsgf("  ")
+	}
+}

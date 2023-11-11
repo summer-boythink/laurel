@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"fmt"
-	// "os"
 )
 
 type Row struct {
@@ -19,13 +18,13 @@ func print_row(row *Row) {
 	PrintMsgf(s)
 }
 
-func serialize_row(source *Row, destination []byte) {
+func serializeRow(source *Row, destination []byte) {
 	binary.LittleEndian.PutUint32(destination[ID_OFFSET:], source.id)
 	copy(destination[USERNAME_OFFSET:], source.username[:])
 	copy(destination[EMAIL_OFFSET:], source.email[:])
 }
 
-func deserialize_row(source []byte, destination *Row) {
+func deserializeRow(source []byte, destination *Row) {
 	destination.id = binary.LittleEndian.Uint32(source[ID_OFFSET:])
 	copy(destination.username[:], source[USERNAME_OFFSET:USERNAME_OFFSET+USERNAME_SIZE])
 	copy(destination.email[:], source[EMAIL_OFFSET:EMAIL_OFFSET+EMAIL_SIZE])

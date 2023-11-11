@@ -13,8 +13,8 @@ const (
 )
 
 type Statement struct {
-	stype         StatementType
-	row_to_insert Row // only used by insert statement
+	stype       StatementType
+	rowToInsert Row // only used by insert statement
 }
 
 func (statement *Statement) execute_statement(table *Table) ExecuteResult {
@@ -31,23 +31,37 @@ func (statement *Statement) execute_statement(table *Table) ExecuteResult {
 }
 
 func execute_insert(statement *Statement, table *Table) ExecuteResult {
-	if table.num_rows >= TABLE_MAX_ROWS {
-		return EXECUTE_TABLE_FULL
+	node := table.pager.getPage(table.rootPageNum)
+	numCells := *leafNodeNumCells(node)
+
+	rowToInsert := &statement.rowToInsert
+	keyToInsert := rowToInsert.id
+	cursor := table.tableFind(keyToInsert)
+	if cursor == nil {
+		// TODO:
+		return EXECUTE_SUCCESS
+	}
+	if cursor.cellNum < numCells {
+		keyAtIndex := *leafNodeKey(node, cursor.cellNum)
+		if keyAtIndex == keyToInsert {
+			return EXECUTE_DUPLICATE_KEY
+		}
 	}
 
-	row_to_insert := &statement.row_to_insert
-
-	serialize_row(row_to_insert, table.row_slot(table.num_rows))
-	table.num_rows += 1
+	cursor.leafNodeInsert(rowToInsert.id, rowToInsert)
 
 	return EXECUTE_SUCCESS
 }
 
 func execute_select(statement *Statement, table *Table) ExecuteResult {
-	row := &Row{}
-	for i := uint32(0); i < table.num_rows; i++ {
-		deserialize_row(table.row_slot(i), row)
-		print_row(row)
+	cursor := table.tableStart()
+
+	var row Row
+	for !cursor.endOfTable {
+		deserializeRow(cursor.cursorValue()[:], &row)
+		print_row(&row)
+		cursor.cursorAdvance()
 	}
+
 	return EXECUTE_SUCCESS
 }

@@ -30,6 +30,7 @@ type ExecuteResult int
 
 const (
 	EXECUTE_SUCCESS ExecuteResult = iota
+	EXECUTE_DUPLICATE_KEY
 	EXECUTE_TABLE_FULL
 )
 
@@ -37,6 +38,10 @@ type InputBuffer struct {
 	buffer        []byte
 	buffer_length int
 	input_length  int
+}
+
+func NewInputBuffer() *InputBuffer {
+	return &InputBuffer{}
 }
 
 func (i *InputBuffer) clear() {
@@ -64,9 +69,9 @@ func prepare_insert(input_buffer *InputBuffer, statement *Statement) PrepareResu
 		return PREPARE_STRING_TOO_LONG
 	}
 
-	statement.row_to_insert.id = uint32(id)
-	copy(statement.row_to_insert.username[:], username)
-	copy(statement.row_to_insert.email[:], email)
+	statement.rowToInsert.id = uint32(id)
+	copy(statement.rowToInsert.username[:], username)
+	copy(statement.rowToInsert.email[:], email)
 
 	return PREPARE_SUCCESS
 }
@@ -103,14 +108,21 @@ func (i *InputBuffer) SetInput(s string) {
 
 func print_prompt() { PrintMsgf("db > ") }
 
-func do_meta_command(input_buffer *InputBuffer, table *Table) MetaCommandResult {
-	if bytes.Equal(input_buffer.buffer, []byte(".exit")) {
+func doMetaCommand(inputBuffer *InputBuffer, table *Table) MetaCommandResult {
+	if bytes.Equal(inputBuffer.buffer, []byte(".exit")) {
 		table.db_close()
 		return META_COMMAND_EXIT
+	} else if bytes.Equal(inputBuffer.buffer, []byte(".btree")) {
+		PrintMsgf("Tree:\n")
+		table.pager.printTree(0, 0)
+		return META_COMMAND_SUCCESS
+	} else if bytes.Equal(inputBuffer.buffer, []byte(".constants")) {
+		PrintMsgf("Constants:\n")
+		PrintMsgf(printConstants())
+		return META_COMMAND_SUCCESS
 	} else {
 		return META_COMMAND_UNRECOGNIZED_COMMAND
 	}
-	// return META_COMMAND_SUCCESS
 }
 
 var (
@@ -135,7 +147,7 @@ func Run(table *Table, input_buffer *InputBuffer, opt ...Option) <-chan string {
 				read_input(input_buffer)
 			}
 			if input_buffer.buffer[0] == '.' {
-				switch do_meta_command(input_buffer, table) {
+				switch doMetaCommand(input_buffer, table) {
 				case META_COMMAND_SUCCESS:
 					continue
 				case META_COMMAND_UNRECOGNIZED_COMMAND:
@@ -173,6 +185,9 @@ func Run(table *Table, input_buffer *InputBuffer, opt ...Option) <-chan string {
 
 			case EXECUTE_TABLE_FULL:
 				PrintMsgf("Error: Table full.\n")
+			case EXECUTE_DUPLICATE_KEY:
+				PrintMsgf("Error: Duplicate key.\n")
+				continue
 			default:
 				PrintMsgf("Error executing statement.\n")
 				os.Exit(1)
