@@ -104,9 +104,10 @@ func TestKeepDataAfterClosingConnection(t *testing.T) {
 	}
 }
 
+// TODO
 // func TestTableIsFullErrorMessage(t *testing.T) {
 // 	insertCommands := []string{}
-// 	for i := 1; i <= 13; i++ {
+// 	for i := 1; i <= 66; i++ {
 // 		insertCommands = append(insertCommands, fmt.Sprintf("insert %d user%d person%d@example.com", i, i, i))
 // 	}
 // 	insertCommands = append(insertCommands, ".exit")
@@ -237,7 +238,6 @@ func TestPrintingThreeLeafNodeBTreeStructure(t *testing.T) {
 		"    - 12\n",
 		"    - 13\n",
 		"    - 14\n",
-		"Need to implement searching an internal node\n",
 		"Executed.\n",
 	}
 
@@ -254,9 +254,9 @@ func TestPrintingConstants(t *testing.T) {
 		"Constants:\n",
 		"ROW_SIZE: 291\n",
 		"COMMON_NODE_HEADER_SIZE: 6\n",
-		"LEAF_NODE_HEADER_SIZE: 10\n",
+		"LEAF_NODE_HEADER_SIZE: 14\n",
 		"LEAF_NODE_CELL_SIZE: 295\n",
-		"LEAF_NODE_SPACE_FOR_CELLS: 4086\n",
+		"LEAF_NODE_SPACE_FOR_CELLS: 4082\n",
 		"LEAF_NODE_MAX_CELLS: 13\n",
 	}
 	if strings.Join(result, "") != strings.Join(expected, "") {

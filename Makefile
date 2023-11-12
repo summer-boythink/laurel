@@ -1,6 +1,6 @@
 BLDDIR = build
 APPS = pages
-DB_FILE = test2.db
+DB_FILE = run_test.db
 CMD_DIR = cmd
 
 all: build

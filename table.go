@@ -46,9 +46,35 @@ func (t *Table) tableFind(key uint32) *Cursor {
 	if getNodeType(rootNode) == NODE_LEAF {
 		return t.leafNodeFind(rootPageNum, key)
 	} else {
-		//TDOO:
-		PrintMsgf("Need to implement searching an internal node\n")
-		// os.Exit(0)
+		return t.internalNodeFind(rootPageNum, key)
+	}
+}
+
+func (table *Table) internalNodeFind(pageNum uint32, key uint32) *Cursor {
+	node := table.pager.getPage(pageNum)
+	numKeys := *internalNodeNumKeys(node)
+
+	// Binary search to find index of child to search
+	minIndex := uint32(0)
+	maxIndex := numKeys // there is one more child than key
+
+	for minIndex != maxIndex {
+		index := (minIndex + maxIndex) / 2
+		keyToRight := *internalNodeKey(node, index)
+		if keyToRight >= key {
+			maxIndex = index
+		} else {
+			minIndex = index + 1
+		}
+	}
+
+	childNum := *internalNodeChild(node, minIndex)
+	child := table.pager.getPage(childNum)
+	switch getNodeType(child) {
+	case NODE_LEAF:
+		return table.leafNodeFind(childNum, key)
+	case NODE_INTERNAL:
+		return table.internalNodeFind(childNum, key)
 	}
 	return nil
 }
@@ -109,15 +135,11 @@ func (t *Table) createNewRoot(rightChildPageNum uint32) {
 }
 
 func (t *Table) tableStart() *Cursor {
-	cursor := &Cursor{}
-	cursor.table = t
-	cursor.pageNum = t.rootPageNum
-	cursor.cellNum = 0
+	cursor := t.tableFind(0)
 
-	rootNode := t.pager.getPage(t.rootPageNum)
-	numCells := *leafNodeNumCells(rootNode)
-	cursor.endOfTable = (numCells == 0)
-
+	node := t.pager.getPage(cursor.pageNum)
+	numCells := leafNodeNumCells(node)
+	cursor.endOfTable = *numCells == 0
 	return cursor
 }
 

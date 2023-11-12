@@ -88,7 +88,7 @@ func prepare_statement(input_buffer *InputBuffer, statement *Statement) PrepareR
 	return PREPARE_UNRECOGNIZED_STATEMENT
 }
 
-func read_input(input_buffer *InputBuffer) {
+func (input_buffer *InputBuffer) ReadInput() {
 	line, _, err := bufio.NewReader(os.Stdin).ReadLine()
 	if err != nil {
 		fmt.Printf("Error reading input %v\n", err)
@@ -144,7 +144,7 @@ func Run(table *Table, input_buffer *InputBuffer, opt ...Option) <-chan string {
 				input_buffer.SetInput(<-opts.InputCmd)
 			} else {
 				print_prompt()
-				read_input(input_buffer)
+				input_buffer.ReadInput()
 			}
 			if input_buffer.buffer[0] == '.' {
 				switch doMetaCommand(input_buffer, table) {

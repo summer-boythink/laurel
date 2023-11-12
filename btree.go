@@ -42,7 +42,10 @@ const (
 	 */
 	LEAF_NODE_NUM_CELLS_SIZE   = 4
 	LEAF_NODE_NUM_CELLS_OFFSET = COMMON_NODE_HEADER_SIZE
-	LEAF_NODE_HEADER_SIZE      = COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_CELLS_SIZE
+	LEAF_NODE_NEXT_LEAF_SIZE   = 4
+	LEAF_NODE_NEXT_LEAF_OFFSET = LEAF_NODE_NUM_CELLS_OFFSET + LEAF_NODE_NUM_CELLS_SIZE
+	LEAF_NODE_HEADER_SIZE      = COMMON_NODE_HEADER_SIZE + LEAF_NODE_NUM_CELLS_SIZE + LEAF_NODE_NEXT_LEAF_SIZE
+
 	/*
 	 * Leaf Node Body Layout
 	 */
@@ -128,6 +131,10 @@ func leafNodeValue(node *[PAGE_SIZE]byte, cellNum uint32) *[LEAF_NODE_CELL_SIZE 
 	return (*[LEAF_NODE_CELL_SIZE - LEAF_NODE_KEY_SIZE]byte)(unsafe.Pointer(&cell[LEAF_NODE_KEY_SIZE]))
 }
 
+func leafNodeNextLeaf(node *[PAGE_SIZE]byte) *uint32 {
+	return (*uint32)(unsafe.Pointer(&node[LEAF_NODE_NEXT_LEAF_OFFSET]))
+}
+
 func getNodeMaxKey(node *[PAGE_SIZE]byte) uint32 {
 	switch getNodeType(node) {
 	case NODE_INTERNAL:
@@ -155,6 +162,7 @@ func initializeLeafNode(node *[PAGE_SIZE]byte) {
 	setNodeType(node, NODE_LEAF)
 	setNodeRoot(node, false)
 	*leafNodeNumCells(node) = 0
+	*leafNodeNextLeaf(node) = 0
 }
 
 func initializeInternalNode(node *[PAGE_SIZE]byte) {
