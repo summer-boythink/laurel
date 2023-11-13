@@ -1,7 +1,5 @@
 package laurel
 
-import "fmt"
-
 type Cursor struct {
 	table      *Table
 	pageNum    uint32
@@ -35,11 +33,12 @@ func (cursor *Cursor) leafNodeSplitAndInsert(key uint32, value *Row) {
 	// Create a new node and move half the cells over.
 	// Insert the new value in one of the two nodes.
 	// Update parent or create a new parent.
-
 	oldNode := cursor.table.pager.getPage(cursor.pageNum)
+	oldMax := getNodeMaxKey(oldNode)
 	newPageNum := cursor.table.pager.getUnusedPageNum()
 	newNode := cursor.table.pager.getPage(newPageNum)
 	initializeLeafNode(newNode)
+	*nodeParent(newNode) = *nodeParent(oldNode)
 
 	*leafNodeNextLeaf(newNode) = *leafNodeNextLeaf(oldNode)
 	*leafNodeNextLeaf(oldNode) = newPageNum
@@ -73,8 +72,12 @@ func (cursor *Cursor) leafNodeSplitAndInsert(key uint32, value *Row) {
 	if isNodeRoot(oldNode) {
 		cursor.table.createNewRoot(newPageNum)
 	} else {
-		fmt.Println("Need to implement updating parent after split")
-		// You can handle updating parent logic here
+		parentPageNum := *nodeParent(oldNode)
+		newMax := getNodeMaxKey(oldNode)
+		parent := cursor.table.pager.getPage(parentPageNum)
+		updateInternalNodeKey(parent, oldMax, newMax)
+		cursor.table.internalNodeInsert(parentPageNum, newPageNum)
+
 	}
 }
 

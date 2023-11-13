@@ -37,6 +37,9 @@ const (
 	INTERNAL_NODE_KEY_SIZE   = 4
 	INTERNAL_NODE_CHILD_SIZE = 4
 	INTERNAL_NODE_CELL_SIZE  = INTERNAL_NODE_CHILD_SIZE + INTERNAL_NODE_KEY_SIZE
+
+	/* Keep this small for testing */
+	INTERNAL_NODE_MAX_CELLS = 3
 	/*
 	 * Leaf Node Header Layout
 	 */
@@ -98,7 +101,7 @@ func internalNodeCell(node *[PAGE_SIZE]byte, cellNum uint32) *uint32 {
 func internalNodeChild(node *[PAGE_SIZE]byte, childNum uint32) *uint32 {
 	numKeys := *internalNodeNumKeys(node)
 	if childNum > numKeys {
-		// handle error
+		// TODO
 	}
 	if childNum == numKeys {
 		return internalNodeRightChild(node)
@@ -145,6 +148,35 @@ func getNodeMaxKey(node *[PAGE_SIZE]byte) uint32 {
 		// handle unknown node type
 	}
 	return 0
+}
+
+func nodeParent(node *[PAGE_SIZE]byte) *uint32 {
+	return (*uint32)(unsafe.Pointer(&node[PARENT_POINTER_OFFSET]))
+}
+
+func internalNodeFindChild(node *[PAGE_SIZE]byte, key uint32) uint32 {
+	numKeys := *internalNodeNumKeys(node)
+
+	// 二分查找
+	minIndex := uint32(0)
+	maxIndex := numKeys // 孩子节点比键多一个
+
+	for minIndex != maxIndex {
+		index := (minIndex + maxIndex) / 2
+		keyToRight := *internalNodeKey(node, index)
+		if keyToRight >= key {
+			maxIndex = index
+		} else {
+			minIndex = index + 1
+		}
+	}
+
+	return minIndex
+}
+
+func updateInternalNodeKey(node *[PAGE_SIZE]byte, oldKey, newKey uint32) {
+	oldChildIndex := internalNodeFindChild(node, oldKey)
+	*internalNodeKey(node, oldChildIndex) = newKey
 }
 
 func printConstants() string {

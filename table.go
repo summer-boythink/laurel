@@ -52,23 +52,9 @@ func (t *Table) tableFind(key uint32) *Cursor {
 
 func (table *Table) internalNodeFind(pageNum uint32, key uint32) *Cursor {
 	node := table.pager.getPage(pageNum)
-	numKeys := *internalNodeNumKeys(node)
 
-	// Binary search to find index of child to search
-	minIndex := uint32(0)
-	maxIndex := numKeys // there is one more child than key
-
-	for minIndex != maxIndex {
-		index := (minIndex + maxIndex) / 2
-		keyToRight := *internalNodeKey(node, index)
-		if keyToRight >= key {
-			maxIndex = index
-		} else {
-			minIndex = index + 1
-		}
-	}
-
-	childNum := *internalNodeChild(node, minIndex)
+	childIndex := internalNodeFindChild(node, key)
+	childNum := *internalNodeChild(node, childIndex)
 	child := table.pager.getPage(childNum)
 	switch getNodeType(child) {
 	case NODE_LEAF:
@@ -116,7 +102,7 @@ func (t *Table) createNewRoot(rightChildPageNum uint32) {
 	// New root node points to two children.
 
 	root := t.pager.getPage(t.rootPageNum)
-	_ = t.pager.getPage(rightChildPageNum)
+	rightChild := t.pager.getPage(rightChildPageNum)
 	leftChildPageNum := t.pager.getUnusedPageNum()
 	leftChild := t.pager.getPage(leftChildPageNum)
 
@@ -132,6 +118,9 @@ func (t *Table) createNewRoot(rightChildPageNum uint32) {
 	leftChildMaxKey := getNodeMaxKey(leftChild)
 	*internalNodeKey(root, 0) = leftChildMaxKey
 	*internalNodeRightChild(root) = rightChildPageNum
+
+	*nodeParent(leftChild) = t.rootPageNum
+	*nodeParent(rightChild) = t.rootPageNum
 }
 
 func (t *Table) tableStart() *Cursor {
@@ -141,6 +130,38 @@ func (t *Table) tableStart() *Cursor {
 	numCells := leafNodeNumCells(node)
 	cursor.endOfTable = *numCells == 0
 	return cursor
+}
+
+func (t *Table) internalNodeInsert(parentPageNum, childPageNum uint32) {
+	parent := t.pager.getPage(parentPageNum)
+	child := t.pager.getPage(childPageNum)
+	childMaxKey := getNodeMaxKey(child)
+	index := internalNodeFindChild(parent, childMaxKey)
+
+	originalNumKeys := *internalNodeNumKeys(parent)
+	*internalNodeNumKeys(parent) = originalNumKeys + 1
+
+	if originalNumKeys >= INTERNAL_NODE_MAX_CELLS {
+		fmt.Println("Need to implement splitting internal node")
+		os.Exit(-1)
+	}
+
+	rightChildPageNum := *internalNodeRightChild(parent)
+	rightChild := t.pager.getPage(rightChildPageNum)
+
+	if childMaxKey > getNodeMaxKey(rightChild) {
+		*internalNodeChild(parent, originalNumKeys) = rightChildPageNum
+		*internalNodeKey(parent, originalNumKeys) = getNodeMaxKey(rightChild)
+		*internalNodeRightChild(parent) = childPageNum
+	} else {
+		for i := originalNumKeys; i > index; i-- {
+			destination := internalNodeCell(parent, i)
+			source := internalNodeCell(parent, i-1)
+			*destination = *source
+		}
+		*internalNodeChild(parent, index) = childPageNum
+		*internalNodeKey(parent, index) = childMaxKey
+	}
 }
 
 func DBopen(filename string) (*Table, error) {
